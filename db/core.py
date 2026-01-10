@@ -16,12 +16,16 @@ def drop_table(table: Table)->None:
         table.drop(connection)
         connection.commit()
 
+def drop_all_tables(tables: list[Table])->None:
+    with engine.connect() as connection:
+        for table in tables:
+            table.drop(connection)
+        connection.commit()
+
 def table_to_df(table_name: str)->pd.DataFrame:
     with engine.connect() as connection:
         df = pd.read_sql(table_name, con=connection)
         return df
 
 if __name__ == '__main__':
-    # drop_table(silver_table)
-    #insert_data('BBG000VHQTD1', silver_table)
-    print(table_to_df('sliver'))
+    pass

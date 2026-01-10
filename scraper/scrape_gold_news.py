@@ -18,8 +18,8 @@ TEST_MODE = "--test" in sys.argv or "-t" in sys.argv
 if TEST_MODE:
     MAX_PAGES = 2
     OUTPUT_FILE = "gold_news_test.csv"
-    print("⚠️  ТЕСТОВЫЙ РЕЖИМ: Будут обработаны только первые 2 страницы")
-    print(f"⚠️  Результаты сохранятся в: {OUTPUT_FILE}\n")
+    print("ТЕСТОВЫЙ РЕЖИМ: Будут обработаны только первые 2 страницы")
+    print(f"Результаты сохранятся в: {OUTPUT_FILE}\n")
 
 
 def contains_keyword(text):
