@@ -4,12 +4,21 @@ import csv
 import time
 from datetime import datetime, timedelta
 
+from typing import TypedDict
+
+class NewsDict(TypedDict):
+    title: str
+    description: str
+    full_text: str
+    date: datetime
+    url: str
+
 class Scraper:
     def __init__(self, url: str, keywords: list[str],
-                 output_file: str, years: int = 5, max_pages: int = 150):
+                 output_file: str | bool, years: int = 5, max_pages: int = 150):
         self.BASE_URL = url
         self.KEYWORDS = keywords
-        self.OUTPUT_FILE = output_file
+        self.OUTPUT_FILE = output_file  # можно передать False, чтобы не писать файл
         self.YEARS = years
         self.MAX_PAGES = max_pages
 
@@ -114,12 +123,15 @@ class Scraper:
                     date_str = date_elem.get_text(strip=True) if date_elem else ""
                     parsed_date = self.parse_date(date_str)
 
+                    # Пропускаем если не удалось спарсить дату
+                    if not parsed_date:
+                        continue
+
                     # Проверка даты
-                    if parsed_date:
-                        cutoff_date = datetime.now() - timedelta(days=365 * self.YEARS)
-                        if parsed_date < cutoff_date:
-                            print(f"Достигнута дата за пределами {self.YEARS} лет: {date_str}")
-                            return articles, True
+                    cutoff_date = datetime.now() - timedelta(days=365 * self.YEARS)
+                    if parsed_date < cutoff_date:
+                        print(f"Достигнута дата за пределами {self.YEARS} лет: {date_str}")
+                        return articles, True
 
                     print(f"Найдена статья по ключевому слову {self.KEYWORDS}: {title[:50]}...")
 
@@ -131,7 +143,7 @@ class Scraper:
                         'title': title,
                         'description': description,
                         'full_text': full_text,
-                        'date': date_str,
+                        'date': parsed_date,
                         'url': article_url
                     })
 
@@ -145,58 +157,128 @@ class Scraper:
             print(f"Ошибка загрузки страницы {page_num}: {e}")
             return [], False
 
-    def parsing(self):
+    def parsing(self) -> list[NewsDict]:
         """Основная функция парсинга"""
         print(f"Начало парсинга новостей по ключевому слову {self.KEYWORDS} с {self.BASE_URL}")
         print(f"Период: последние {self.YEARS} лет")
         print(f"Результаты будут сохранены в: {self.OUTPUT_FILE}\n")
 
-        all_articles = []
+        all_articles: list[NewsDict] = []
         page = 1
         should_stop = False
 
-        #CSV файл
-        with open(self.OUTPUT_FILE, 'w', newline='', encoding='utf-8-sig') as csvfile:
-            fieldnames = ['Заголовок', 'Описание', 'Полный текст', 'Дата и время', 'URL']
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
+        writer = None
+        csvfile = None
 
-            while page <= self.MAX_PAGES and not should_stop:
-                articles, should_stop = self.scrape_page(page)
+        # Открываем CSV только если OUTPUT_FILE задан и не False
+        if self.OUTPUT_FILE is not False:
+            try:
+                csvfile = open(self.OUTPUT_FILE, 'w', newline='', encoding='utf-8-sig')
+                fieldnames = ['Заголовок', 'Описание', 'Полный текст', 'Дата и время', 'URL']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+            except Exception as e:
+                print(f"Не удалось открыть файл для записи {self.OUTPUT_FILE}: {e}")
+                writer = None
 
-                if not articles and page > 1:
-                    print("Новостей больше не найдено.")
-                    break
+        while page <= self.MAX_PAGES and not should_stop:
+            articles, should_stop = self.scrape_page(page)
 
-                # Записываем найденные статьи в CSV
-                for article in articles:
-                    writer.writerow({
-                        'Заголовок': article['title'],
-                        'Описание': article['description'],
-                        'Полный текст': article['full_text'],
-                        'Дата и время': article['date'],
-                        'URL': article['url']
-                    })
-                    all_articles.append(article)
+            if not articles and page > 1:
+                print("Новостей больше не найдено.")
+                break
 
-                print(f"Страница {page}: найдено {len(articles)} статей по ключевому слову {self.KEYWORDS}")
-                print(f"Всего собрано: {len(all_articles)} статей\n")
+            # Записываем найденные статьи в CSV (если writer доступен)
+            for article in articles:
+                if writer:
+                    try:
+                        writer.writerow({
+                            'Заголовок': article['title'],
+                            'Описание': article['description'],
+                            'Полный текст': article['full_text'],
+                            'Дата и время': article['date'].strftime("%d.%m.%Y %H:%M") if article['date'] else "",
+                            'URL': article['url']
+                        })
+                    except Exception as e:
+                        print(f"Ошибка записи в CSV: {e}")
 
-                if should_stop:
-                    print(f"Достигнут предел в {self.YEARS} лет. Парсинг завершён.")
-                    break
+                all_articles.append(article)
 
-                page += 1
-                time.sleep(2)
+            print(f"Страница {page}: найдено {len(articles)} статей по ключевому слову {self.KEYWORDS}")
+            print(f"Всего собрано: {len(all_articles)} статей\n")
+
+            if should_stop:
+                print(f"Достигнут предел в {self.YEARS} лет. Парсинг завершён.")
+                break
+
+            page += 1
+            time.sleep(2)
+
+        # Закрываем файл, если открывали
+        if csvfile:
+            try:
+                csvfile.close()
+            except Exception:
+                pass
 
         print(f"\n{'=' * 60}")
         print(f"Парсинг завершён!")
         print(f"Всего найдено статей по ключевому слову {self.KEYWORDS}: {len(all_articles)}")
-        print(f"Результаты сохранены в файл: {self.OUTPUT_FILE}")
+        if self.OUTPUT_FILE is not False:
+            print(f"Результаты сохранены в файл: {self.OUTPUT_FILE}")
         print(f"{'=' * 60}")
+
+        return all_articles
+
+    def get_recent_news(self, hours: int = 1) -> list[NewsDict]:
+        """
+        Получить новости, вышедшие в течение указанного количества часов
+        Поскольку новости отсортированы по убыванию времени, проверяет только
+        до первой старой новости и останавливается
+
+        Args:
+            hours: количество часов от текущего времени (по умолчанию 1 час)
+
+        Returns:
+            список новостей, опубликованных в течение последних N часов
+        """
+        print(f"Начало поиска новостей за последние {hours} час(ов) по ключевому слову {self.KEYWORDS}")
+        print(f"с {self.BASE_URL}\n")
+
+        recent_articles: list[NewsDict] = []
+        cutoff_time = datetime.now() - timedelta(hours=hours)
+
+        # Парсим только первую страницу, т.к. новости отсортированы по убыванию времени
+        articles, _ = self.scrape_page(page_num=1)
+
+        if not articles:
+            print("Новостей не найдено.")
+            print(f"{'=' * 60}")
+            print(f"Поиск завершён!")
+            print(f"Найдено свежих статей (за последние {hours} час(ов)): 0")
+            print(f"{'=' * 60}\n")
+            return recent_articles
+
+        for article in articles:
+            # Если дата свежая - добавляем
+            if article['date'] >= cutoff_time:
+                recent_articles.append(article)
+            else:
+                # Если встретили старую новость - останавливаемся (т.к. дальше только еще старше)
+                print(f"✗ Встречена первая старая новость (старше {hours} ч.): {article['date'].strftime('%d.%m.%Y %H:%M')}")
+                print(f"Парсинг остановлен (новости отсортированы по времени)\n")
+                break
+
+
+        print(f"\n{'=' * 60}")
+        print(f"Поиск завершён!")
+        print(f"Найдено свежих статей (за последние {hours} час(ов)): {len(recent_articles)}")
+        print(f"{'=' * 60}\n")
+        return recent_articles
 
 
 if __name__ == "__main__":
     scarper = Scraper(url='https://www.finversia.ru/dragmetally',
-                      keywords=['золот'], output_file='test.csv', max_pages=2)
-    scarper.parsing()
+                      keywords=['золот'], output_file=False, max_pages=2)
+    gold = scarper.get_recent_news()
+    print(gold)

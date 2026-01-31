@@ -39,7 +39,7 @@ def list_to_dict(arr: List[HistoricCandle]) -> List[CandleDict]:
     return all_candle
 
 def get_cost(figi: str) -> List[CandleDict]:
-    '''Функция для получения цены по useful_information.md'''
+    '''Функция для получения цены по figi'''
 
     with Client(TOKEN) as client:
         all_candle = []
@@ -53,8 +53,22 @@ def get_cost(figi: str) -> List[CandleDict]:
 
     return list_to_dict(all_candle)
 
+def get_cost_hours(figi: str) -> List[CandleDict]:
+    '''Функция для получения цены по figi'''
+
+    with Client(TOKEN) as client:
+        all_candle = []
+        for candle in client.get_all_candles(
+                instrument_id=figi,
+                from_=now() - timedelta(hours=1),
+                interval=CandleInterval.CANDLE_INTERVAL_DAY,
+                candle_source_type=CandleSource.CANDLE_SOURCE_UNSPECIFIED,
+        ):
+            all_candle.append(candle)
+
+    return list_to_dict(all_candle)
 
 if __name__ == "__main__":
-    # arr = get_cost('BBG000VHQTD1')
-    # print(arr)
-    print(find('Gold'))
+    arr = get_cost_hours('FUTCOPPE0326')
+    print(arr)
+    # print(find('CEH6'))
