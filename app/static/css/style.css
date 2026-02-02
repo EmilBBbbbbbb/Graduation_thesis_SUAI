@@ -1,0 +1,8 @@
+body { font-family: Arial, sans-serif; margin:0; padding:0; background: #ffffff; }
+.nav-bar { display:flex; align-items:center; justify-content:space-between; background:#222223; padding:10px 24px; }
+.nav-bar .logo { color:#ecf0f1; text-decoration:none; font-weight:bold; font-size:20px; }
+.nav-menu { list-style:none; display:flex; gap:16px; margin:0; padding:0; }
+.nav-menu a { color:#ecf0f1; text-decoration:none; padding:6px 10px; border-radius:4px; }
+.nav-menu a:hover { background:#272728; }
+main { padding:24px; max-width:1200px; margin:0 auto; }
+footer { background:#f4f4f4; text-align:center; padding:12px; margin-top:32px; font-size:14px; }

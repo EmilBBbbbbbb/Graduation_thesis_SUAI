@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}Прогноз цен{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+<header>
+    <nav class="nav-bar">
+        <a href="/" class="logo">Прогноз цен</a>
+        <ul class="nav-menu">
+            <li><a href="/gold">Золото</a></li>
+            <li><a href="/silver">Серебро</a></li>
+            <li><a href="/cupp">Медь</a></li>
+        </ul>
+    </nav>
+</header>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <p>&copy; {{ year }} Прогноз цен. Все права защищены.</p>
+</footer>
+
+</body>
+</html>
