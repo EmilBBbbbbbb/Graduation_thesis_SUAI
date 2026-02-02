@@ -13,6 +13,9 @@ from typing import List, TypedDict
 
 TOKEN = os.getenv('INVEST_TOKEN')
 
+import sys
+from loguru import logger
+
 class CandleDict(TypedDict):
     date: datetime
     open: float
@@ -71,4 +74,4 @@ def get_cost_hours(figi: str) -> List[CandleDict]:
 if __name__ == "__main__":
     arr = get_cost_hours('FUTCOPPE0326')
     print(arr)
-    # print(find('CEH6'))
+    print(find('CEH6'))

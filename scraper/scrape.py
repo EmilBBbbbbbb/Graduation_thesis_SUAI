@@ -6,6 +6,11 @@ from datetime import datetime, timedelta
 
 from typing import TypedDict
 
+import sys
+from loguru import logger
+logger.remove()
+logger.add(sys.stderr, level="INFO")
+
 class NewsDict(TypedDict):
     title: str
     description: str
@@ -40,7 +45,7 @@ class Scraper:
                 return datetime.strptime(datetime_str, "%d.%m.%Y %H:%M")
             return None
         except Exception as e:
-            print(f"Ошибка парсинга даты '{date_str}': {e}")
+            logger.warning(f"Ошибка парсинга даты '{date_str}': {e}")
             return None
 
     @staticmethod
@@ -73,14 +78,14 @@ class Scraper:
             return article_text.strip() if article_text else "Текст не найден"
 
         except Exception as e:
-            print(f"Ошибка при получении статьи {url}: {e}")
+            logger.warning(f"Ошибка при получении статьи {url}: {e}")
             return "Ошибка загрузки текста"
 
     def scrape_page(self, page_num) -> tuple[list, bool]:
         """Парсинг одной страницы новостей"""
         url = self.BASE_URL if page_num == 1 else f"{self.BASE_URL}?page={page_num}"
 
-        print(f"Обработка страницы {page_num}: {url}")
+        logger.info(f"Обработка страницы {page_num}: {url}")
 
         try:
             headers = {
@@ -130,13 +135,13 @@ class Scraper:
                     # Проверка даты
                     cutoff_date = datetime.now() - timedelta(days=365 * self.YEARS)
                     if parsed_date < cutoff_date:
-                        print(f"Достигнута дата за пределами {self.YEARS} лет: {date_str}")
+                        logger.info(f"Достигнута дата за пределами {self.YEARS} лет: {date_str}")
                         return articles, True
 
-                    print(f"Найдена статья по ключевому слову {self.KEYWORDS}: {title[:50]}...")
+                    logger.info(f"Найдена статья по ключевому слову {self.KEYWORDS}: {title[:50]}...")
 
                     # Весь текст
-                    print(f"  Загрузка полного текста...")
+                    logger.info(f"  Загрузка полного текста...")
                     full_text = self.get_article_details(article_url)
 
                     articles.append({
@@ -148,20 +153,20 @@ class Scraper:
                     })
 
                 except Exception as e:
-                    print(f"Ошибка обработки элемента: {e}")
+                    logger.warning(f"Ошибка обработки элемента: {e}")
                     continue
 
             return articles, False
 
         except Exception as e:
-            print(f"Ошибка загрузки страницы {page_num}: {e}")
+            logger.warning(f"Ошибка загрузки страницы {page_num}: {e}")
             return [], False
 
     def parsing(self) -> list[NewsDict]:
         """Основная функция парсинга"""
-        print(f"Начало парсинга новостей по ключевому слову {self.KEYWORDS} с {self.BASE_URL}")
-        print(f"Период: последние {self.YEARS} лет")
-        print(f"Результаты будут сохранены в: {self.OUTPUT_FILE}\n")
+        logger.info(f"Начало парсинга новостей по ключевому слову {self.KEYWORDS} с {self.BASE_URL}")
+        logger.info(f"Период: последние {self.YEARS} лет")
+        logger.info(f"Результаты будут сохранены в: {self.OUTPUT_FILE}\n")
 
         all_articles: list[NewsDict] = []
         page = 1
@@ -178,14 +183,14 @@ class Scraper:
                 writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                 writer.writeheader()
             except Exception as e:
-                print(f"Не удалось открыть файл для записи {self.OUTPUT_FILE}: {e}")
+                logger.warning(f"Не удалось открыть файл для записи {self.OUTPUT_FILE}: {e}")
                 writer = None
 
         while page <= self.MAX_PAGES and not should_stop:
             articles, should_stop = self.scrape_page(page)
 
             if not articles and page > 1:
-                print("Новостей больше не найдено.")
+                logger.info("Новостей больше не найдено.")
                 break
 
             # Записываем найденные статьи в CSV (если writer доступен)
@@ -200,15 +205,15 @@ class Scraper:
                             'URL': article['url']
                         })
                     except Exception as e:
-                        print(f"Ошибка записи в CSV: {e}")
+                        logger.warning(f"Ошибка записи в CSV: {e}")
 
                 all_articles.append(article)
 
-            print(f"Страница {page}: найдено {len(articles)} статей по ключевому слову {self.KEYWORDS}")
-            print(f"Всего собрано: {len(all_articles)} статей\n")
+            logger.info(f"Страница {page}: найдено {len(articles)} статей по ключевому слову {self.KEYWORDS}")
+            logger.info(f"Всего собрано: {len(all_articles)} статей\n")
 
             if should_stop:
-                print(f"Достигнут предел в {self.YEARS} лет. Парсинг завершён.")
+                logger.info(f"Достигнут предел в {self.YEARS} лет. Парсинг завершён.")
                 break
 
             page += 1
@@ -221,12 +226,10 @@ class Scraper:
             except Exception:
                 pass
 
-        print(f"\n{'=' * 60}")
-        print(f"Парсинг завершён!")
-        print(f"Всего найдено статей по ключевому слову {self.KEYWORDS}: {len(all_articles)}")
+        logger.info(f"Парсинг завершён!")
+        logger.info(f"Всего найдено статей по ключевому слову {self.KEYWORDS}: {len(all_articles)}")
         if self.OUTPUT_FILE is not False:
-            print(f"Результаты сохранены в файл: {self.OUTPUT_FILE}")
-        print(f"{'=' * 60}")
+            logger.info(f"Результаты сохранены в файл: {self.OUTPUT_FILE}")
 
         return all_articles
 
@@ -242,8 +245,8 @@ class Scraper:
         Returns:
             список новостей, опубликованных в течение последних N часов
         """
-        print(f"Начало поиска новостей за последние {hours} час(ов) по ключевому слову {self.KEYWORDS}")
-        print(f"с {self.BASE_URL}\n")
+        logger.info(f"Начало поиска новостей за последние {hours} час(ов) по ключевому слову {self.KEYWORDS}")
+        logger.info(f"с {self.BASE_URL}\n")
 
         recent_articles: list[NewsDict] = []
         cutoff_time = datetime.now() - timedelta(hours=hours)
@@ -252,11 +255,8 @@ class Scraper:
         articles, _ = self.scrape_page(page_num=1)
 
         if not articles:
-            print("Новостей не найдено.")
-            print(f"{'=' * 60}")
-            print(f"Поиск завершён!")
-            print(f"Найдено свежих статей (за последние {hours} час(ов)): 0")
-            print(f"{'=' * 60}\n")
+            logger.info(f"Поиск завершён!")
+            logger.info(f"Найдено свежих статей (за последние {hours} час(ов)): 0")
             return recent_articles
 
         for article in articles:
@@ -265,15 +265,12 @@ class Scraper:
                 recent_articles.append(article)
             else:
                 # Если встретили старую новость - останавливаемся (т.к. дальше только еще старше)
-                print(f"✗ Встречена первая старая новость (старше {hours} ч.): {article['date'].strftime('%d.%m.%Y %H:%M')}")
-                print(f"Парсинг остановлен (новости отсортированы по времени)\n")
+                logger.info(f"✗ Встречена первая старая новость (старше {hours} ч.): {article['date'].strftime('%d.%m.%Y %H:%M')}")
+                logger.info(f"Парсинг остановлен (новости отсортированы по времени)\n")
                 break
 
-
-        print(f"\n{'=' * 60}")
-        print(f"Поиск завершён!")
-        print(f"Найдено свежих статей (за последние {hours} час(ов)): {len(recent_articles)}")
-        print(f"{'=' * 60}\n")
+        logger.info(f"Поиск завершён!")
+        logger.info(f"Найдено свежих статей (за последние {hours} час(ов)): {len(recent_articles)}")
         return recent_articles
 
 

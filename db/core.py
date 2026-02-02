@@ -10,6 +10,12 @@ from models import gold_cost_table, silver_cost_table, copper_cost_table, \
 
 from typing import List
 
+import sys
+from loguru import logger
+
+logger.remove()
+logger.add(sys.stderr, level="INFO")
+
 def insert_data(data: List[CandleDict|NewsDict], table: Table)->None:
     '''Вставка данных в таблицу'''
 
@@ -33,7 +39,7 @@ def drop_all_tables(tables: List[Table])->None:
             table.drop(connection)
         connection.commit()
 
-    print('Все таблицы удалены.')
+    logger.info('Все таблицы удалены.')
 
 def table_to_df(table_name: str)->pd.DataFrame:
     '''Чтение таблицы в DataFrame'''
@@ -45,21 +51,21 @@ def table_to_df(table_name: str)->pd.DataFrame:
 def filling_all_tables()->None:
     '''Заполнение всех таблиц'''
 
-    print('Заполнение всех таблиц...')
+    logger.info('Заполнение всех таблиц...')
     # Заполнение таблицы стоимости золота
     gold_cost = get_cost('FUTGOLD12250')
     insert_data(gold_cost, gold_cost_table)
-    print('Заполнена таблица стоимости золота.')
+    logger.info('Заполнена таблица стоимости золота.')
 
     # Заполнение таблицы стоимости серебра
     silver_cost = get_cost('BBG000VHQTD1')
     insert_data(silver_cost, silver_cost_table)
-    print('Заполнена таблица стоимости серебра.')
+    logger.info('Заполнена таблица стоимости серебра.')
 
     # Заполнение таблицы стоимости меди
     copper_cost = get_cost('FUTCOPPE0326')
     insert_data(copper_cost, copper_cost_table)
-    print('Заполнена таблица стоимости меди.')
+    logger.info('Заполнена таблица стоимости меди.')
 
     gold_scraper = Scraper(
         url='https://www.finversia.ru/dragmetally',
@@ -85,15 +91,15 @@ def filling_all_tables()->None:
 
     # Заполнение таблицы новостей о золоте
     insert_data(gold_scraper.parsing(), gold_news_table)
-    print('Заполнена таблица новостей о золоте.')
+    logger.info('Заполнена таблица новостей о золоте.')
 
     # Заполнение таблицы новостей о серебре
     insert_data(silver_scraper.parsing(), silver_news_table)
-    print('Заполнена таблица новостей о серебре.')
+    logger.info('Заполнена таблица новостей о серебре.')
 
     # Заполнение таблицы новостей о меде
     insert_data(copper_scraper.parsing(), copper_news_table)
-    print('Заполнена таблица новостей о меди.')
+    logger.info('Заполнена таблица новостей о меди.')
 
 
 if __name__ == '__main__':
@@ -104,4 +110,6 @@ if __name__ == '__main__':
     #     gold_news_table,
     #     silver_news_table,
     #     copper_news_table])
-    filling_all_tables()
+    # filling_all_tables()
+
+    logger.info('hi')
