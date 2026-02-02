@@ -1,6 +1,6 @@
 # FIGI Codes for Precious Metals
 BBG000VHQTD1 - Серебро  
-FUTGOLD12250 - Золото
+BBG000VJ5YR4 - Золото
 FUTCOPPE0326 - Медь
 
 BASE_URL = "https://www.finversia.ru/dragmetally"  

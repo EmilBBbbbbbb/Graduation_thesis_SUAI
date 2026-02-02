@@ -72,6 +72,8 @@ def get_cost_hours(figi: str) -> List[CandleDict]:
     return list_to_dict(all_candle)
 
 if __name__ == "__main__":
-    arr = get_cost_hours('FUTCOPPE0326')
-    print(arr)
-    print(find('CEH6'))
+    # arr = get_cost('BBG000VJ5YR4')
+    # print(arr)
+    # arr = get_cost_hours('BBG000VJ5YR4')
+    # print(arr)
+    print(find('FUTGOLD12250'))

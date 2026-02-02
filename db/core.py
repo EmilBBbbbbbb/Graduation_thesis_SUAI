@@ -24,6 +24,8 @@ def insert_data(data: List[CandleDict|NewsDict], table: Table)->None:
         connection.execute(stmt)
         connection.commit()
 
+    logger.info('Данные вставлены в таблицу {}.'.format(table.name))
+
 def drop_table(table: Table)->None:
     '''Удаление таблицы'''
 
@@ -53,7 +55,7 @@ def filling_all_tables()->None:
 
     logger.info('Заполнение всех таблиц...')
     # Заполнение таблицы стоимости золота
-    gold_cost = get_cost('FUTGOLD12250')
+    gold_cost = get_cost('BBG000VJ5YR4')
     insert_data(gold_cost, gold_cost_table)
     logger.info('Заполнена таблица стоимости золота.')
 
@@ -103,13 +105,11 @@ def filling_all_tables()->None:
 
 
 if __name__ == '__main__':
-    # drop_all_tables([
-    #     gold_cost_table,
-    #     silver_cost_table,
-    #     copper_cost_table,
-    #     gold_news_table,
-    #     silver_news_table,
-    #     copper_news_table])
+    drop_all_tables([
+        gold_cost_table,
+        silver_cost_table,
+        copper_cost_table,
+        gold_news_table,
+        silver_news_table,
+        copper_news_table])
     # filling_all_tables()
-
-    logger.info('hi')
