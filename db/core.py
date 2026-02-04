@@ -5,8 +5,14 @@ from sqlalchemy import insert
 import pandas as pd
 
 from scraper.scrape import NewsDict, Scraper
-from models import gold_cost_table, silver_cost_table, copper_cost_table, \
-    gold_news_table, silver_news_table, copper_news_table
+from db.models import (
+    gold_cost_table,
+    silver_cost_table,
+    copper_cost_table,
+    gold_news_table,
+    silver_news_table,
+    copper_news_table,
+)
 
 from typing import List
 
@@ -105,11 +111,11 @@ def filling_all_tables()->None:
 
 
 if __name__ == '__main__':
-    drop_all_tables([
-        gold_cost_table,
-        silver_cost_table,
-        copper_cost_table,
-        gold_news_table,
-        silver_news_table,
-        copper_news_table])
-    # filling_all_tables()
+    # drop_all_tables([
+    #     gold_cost_table,
+    #     silver_cost_table,
+    #     copper_cost_table,
+    #     gold_news_table,
+    #     silver_news_table,
+    #     copper_news_table])
+    filling_all_tables()

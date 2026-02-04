@@ -1,7 +1,57 @@
 {% extends 'base.html' %}
-{% block title %}Главная{% endblock %}
+{% block title %}{{ metal_name }}{% endblock %}
 {% block content %}
-<div>
-    # Main block
+<section class="dashboard">
+    <div class="chart-panel">
+        <div class="panel-header">
+            <div>
+                <h1 class="panel-title">{{ metal_name }}</h1>
+                <p class="panel-subtitle">Интерактивный свечной график</p>
+            </div>
+            <div class="panel-badge">{{ metal_code }}</div>
+        </div>
+        <div
+            id="candlestick-chart"
+            class="chart"
+            data-series='{{ chart_data | tojson }}'
+            data-metal="{{ metal_name }}"
+        ></div>
+    </div>
+    <aside class="news-panel">
+        <div class="news-header">
+            <h2>Новости</h2>
+            <span class="news-counter">{{ news | length }}</span>
+        </div>
+        <div class="news-list">
+            {% for item in news %}
+            <button
+                class="news-card"
+                type="button"
+                data-title="{{ item.title }}"
+                data-date="{{ item.date }}"
+                data-body="{{ item.body }}"
+            >
+                <div class="news-card-header">
+                    <h3>{{ item.title }}</h3>
+                    <span>{{ item.date }}</span>
+                </div>
+                <p>{{ item.summary }}</p>
+                <span class="news-more">Читать полностью</span>
+            </button>
+            {% endfor %}
+        </div>
+    </aside>
+</section>
+
+<div class="modal" id="news-modal" aria-hidden="true">
+    <div class="modal-overlay" data-modal-close></div>
+    <div class="modal-card" role="dialog" aria-modal="true">
+        <button class="modal-close" type="button" data-modal-close>×</button>
+        <div class="modal-content">
+            <h3 id="modal-title"></h3>
+            <span id="modal-date"></span>
+            <p id="modal-body"></p>
+        </div>
+    </div>
 </div>
 {% endblock %}
