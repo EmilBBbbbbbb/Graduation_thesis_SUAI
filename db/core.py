@@ -1,7 +1,6 @@
 from db.create_db import engine
 from parser.get_cost import get_cost, CandleDict
-from sqlalchemy import Table
-from sqlalchemy import insert
+from sqlalchemy import Table, insert, inspect
 import pandas as pd
 
 from scraper.scrape import NewsDict, Scraper
@@ -18,6 +17,8 @@ from typing import List
 
 import sys
 from loguru import logger
+
+inspector = inspect(engine)
 
 logger.remove()
 logger.add(sys.stderr, level="INFO")
@@ -55,6 +56,15 @@ def table_to_df(table_name: str)->pd.DataFrame:
     with engine.connect() as connection:
         df = pd.read_sql(table_name, con=connection)
         return df
+
+def db_to_csv(folder: str = 'data')->None:
+    '''Экспорт всех таблиц в CSV'''
+
+    tables = inspector.get_table_names()
+    for table in tables:
+        df = table_to_df(table)
+        df.to_csv(f'{folder}/{table}.csv', index=False)
+        logger.info('Таблица {} экспортирована в CSV.'.format(table))
 
 def filling_all_tables()->None:
     '''Заполнение всех таблиц'''
