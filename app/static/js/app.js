@@ -2,7 +2,11 @@ const chartContainer = document.getElementById('candlestick-chart');
 
 if (chartContainer && window.LightweightCharts) {
     const rawData = chartContainer.dataset.series;
+    const rawPredictData = chartContainer.dataset.predictSeries;
+
     const seriesData = rawData ? JSON.parse(rawData) : [];
+    const predictData = rawPredictData ? JSON.parse(rawPredictData) : [];
+
 
     const chart = LightweightCharts.createChart(chartContainer, {
         layout: {
@@ -37,6 +41,21 @@ if (chartContainer && window.LightweightCharts) {
     });
 
     candlestickSeries.setData(seriesData);
+
+    if (predictData.length > 0) {
+        const predictCandlestickSeries = chart.addCandlestickSeries({
+            upColor: '#40E0D0',
+            downColor: '#a963ea',
+            borderUpColor: '#40E0D0',
+            borderDownColor: '#a963ea',
+            wickUpColor: '#40E0D0',
+            wickDownColor: '#a963ea',
+            priceLineVisible: true,
+            lastValueVisible: true,
+        });
+        predictCandlestickSeries.setData(predictData);
+    }
+
     chart.timeScale().fitContent();
 
     const handleResize = () => {

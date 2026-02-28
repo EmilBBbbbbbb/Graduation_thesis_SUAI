@@ -29,6 +29,33 @@ Column('date', DateTime, primary_key=True),
     Column('low', Float),
     Column('close', Float),)
 
+gold_cost_predict_table = Table(
+    'gold_predict_cost',
+    metadata,
+Column('date', DateTime, primary_key=True),
+    Column('open', Float),
+    Column('high', Float),
+    Column('low', Float),
+    Column('close', Float),)
+
+silver_cost_predict_table = Table(
+    'sliver_predict_cost',
+    metadata,
+Column('date', DateTime, primary_key=True),
+    Column('open', Float),
+    Column('high', Float),
+    Column('low', Float),
+    Column('close', Float),)
+
+copper_cost_predict_table = Table(
+    'copper_predict_cost',
+    metadata,
+Column('date', DateTime, primary_key=True),
+    Column('open', Float),
+    Column('high', Float),
+    Column('low', Float),
+    Column('close', Float),)
+
 gold_news_table = Table(
     'gold_news',
     metadata,

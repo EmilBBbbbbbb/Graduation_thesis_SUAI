@@ -14,6 +14,7 @@
             id="candlestick-chart"
             class="chart"
             data-series='{{ chart_data | tojson }}'
+            data-predict-series='{{ predict_data | tojson }}'
             data-metal="{{ metal_name }}"
         ></div>
     </div>

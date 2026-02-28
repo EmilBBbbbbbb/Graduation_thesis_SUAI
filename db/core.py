@@ -3,6 +3,8 @@ from parser.get_cost import get_cost, CandleDict
 from sqlalchemy import Table, insert, inspect
 import pandas as pd
 
+import datetime as dt
+
 from scraper.scrape import NewsDict, Scraper
 from db.models import (
     gold_cost_table,
@@ -11,6 +13,9 @@ from db.models import (
     gold_news_table,
     silver_news_table,
     copper_news_table,
+    gold_cost_predict_table,
+    silver_cost_predict_table,
+    copper_cost_predict_table
 )
 
 from typing import List
@@ -128,4 +133,17 @@ if __name__ == '__main__':
     #     gold_news_table,
     #     silver_news_table,
     #     copper_news_table])
-    filling_all_tables()
+
+    # drop_all_tables([
+    #     gold_cost_predict_table,
+    #     silver_cost_predict_table,
+    #     copper_cost_predict_table])
+
+    #filling_all_tables()
+
+    candle: CandleDict = {"date": dt.datetime(2026, 2, 5),
+                "open": 211.2,
+                 "high":224.4,
+                 "low": 208.18,
+                 "close": 219.2}
+    insert_data([candle],silver_cost_predict_table)

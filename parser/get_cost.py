@@ -76,4 +76,4 @@ if __name__ == "__main__":
     # print(arr)
     # arr = get_cost_hours('BBG000VJ5YR4')
     # print(arr)
-    print(find('FUTGOLD12250'))
+    print(find('FUTCOPPE0326'))
