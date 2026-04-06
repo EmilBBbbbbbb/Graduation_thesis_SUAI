@@ -95,7 +95,8 @@ def update_information() -> None:
 schedule.cyclic(dt.timedelta(hours=1), update_information)
 
 if __name__ == '__main__':
+    update_information()
     #print(silver_scraper.get_recent_news())
-    while True:
-        schedule.exec_jobs()
-        time.sleep(1)
+    # while True:
+    #     schedule.exec_jobs()
+    #     time.sleep(1)
