@@ -133,17 +133,17 @@ if __name__ == '__main__':
     #     gold_news_table,
     #     silver_news_table,
     #     copper_news_table])
-
+    #
     # drop_all_tables([
     #     gold_cost_predict_table,
     #     silver_cost_predict_table,
     #     copper_cost_predict_table])
 
-    #filling_all_tables()
-
-    candle: CandleDict = {"date": dt.datetime(2026, 2, 5),
-                "open": 211.2,
-                 "high":224.4,
-                 "low": 208.18,
-                 "close": 219.2}
-    insert_data([candle],silver_cost_predict_table)
+    filling_all_tables()
+    #
+    # candle: CandleDict = {"date": dt.datetime(2026, 2, 5),
+    #             "open": 211.2,
+    #              "high":224.4,
+    #              "low": 208.18,
+    #              "close": 219.2}
+    # insert_data([candle],silver_cost_predict_table)
