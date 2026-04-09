@@ -9,7 +9,8 @@ Column('date', DateTime, primary_key=True),
     Column('open', Float),
     Column('high', Float),
     Column('low', Float),
-    Column('close', Float),)
+    Column('close', Float),
+    Column('volume', Integer),)
 
 silver_cost_table = Table(
     'sliver_cost',
@@ -18,7 +19,8 @@ Column('date', DateTime, primary_key=True),
     Column('open', Float),
     Column('high', Float),
     Column('low', Float),
-    Column('close', Float),)
+    Column('close', Float),
+    Column('volume', Integer),)
 
 copper_cost_table = Table(
     'copper_cost',
@@ -27,7 +29,8 @@ Column('date', DateTime, primary_key=True),
     Column('open', Float),
     Column('high', Float),
     Column('low', Float),
-    Column('close', Float),)
+    Column('close', Float),
+    Column('volume', Integer),)
 
 gold_cost_predict_table = Table(
     'gold_predict_cost',
