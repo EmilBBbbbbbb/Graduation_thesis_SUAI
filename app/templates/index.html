@@ -8,7 +8,17 @@
                 <h1 class="panel-title">{{ metal_name }}</h1>
                 <p class="panel-subtitle">Интерактивный свечной график</p>
             </div>
-            <div class="panel-badge">{{ metal_code }}</div>
+            <div class="panel-tools">
+                <div class="panel-badge">{{ metal_code }}</div>
+            </div>
+        </div>
+        <div class="ma-toolbar" id="ma-buttons">
+            <button class="ma-btn" type="button" data-ma-value="off">Off</button>
+            <button class="ma-btn is-active" type="button" data-ma-value="auto">Auto</button>
+            <button class="ma-btn" type="button" data-ma-value="10">MA 10</button>
+            <button class="ma-btn" type="button" data-ma-value="20">MA 20</button>
+            <button class="ma-btn" type="button" data-ma-value="50">MA 50</button>
+            <button class="ma-btn" type="button" data-ma-value="100">MA 100</button>
         </div>
         <div
             id="candlestick-chart"

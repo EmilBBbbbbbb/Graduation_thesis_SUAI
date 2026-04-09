@@ -1,4 +1,39 @@
 const chartContainer = document.getElementById('candlestick-chart');
+const maButtonsContainer = document.getElementById('ma-buttons');
+const maButtons = maButtonsContainer
+    ? Array.from(maButtonsContainer.querySelectorAll('.ma-btn'))
+    : [];
+
+const resolveAutoMaPeriod = (visibleBars) => {
+    if (visibleBars <= 40) return 10;
+    if (visibleBars <= 120) return 20;
+    if (visibleBars <= 260) return 50;
+    return 100;
+};
+
+const calculateSma = (candles, period) => {
+    if (!Number.isInteger(period) || period < 2 || candles.length < period) return [];
+
+    const maData = [];
+    let rollingSum = 0;
+
+    for (let i = 0; i < candles.length; i += 1) {
+        rollingSum += Number(candles[i].close) || 0;
+
+        if (i >= period) {
+            rollingSum -= Number(candles[i - period].close) || 0;
+        }
+
+        if (i >= period - 1) {
+            maData.push({
+                time: candles[i].time,
+                value: Number((rollingSum / period).toFixed(2)),
+            });
+        }
+    }
+
+    return maData;
+};
 
 if (chartContainer && window.LightweightCharts) {
     const rawData = chartContainer.dataset.series;
@@ -40,6 +75,43 @@ if (chartContainer && window.LightweightCharts) {
 
     candlestickSeries.setData(seriesData);
 
+    const maSeries = chart.addLineSeries({
+        color: '#60a5fa',
+        lineWidth: 2,
+        priceLineVisible: false,
+        lastValueVisible: false,
+    });
+
+    const getSelectedMaValue = () => {
+        const activeButton = maButtons.find((button) => button.classList.contains('is-active'));
+        return activeButton ? activeButton.dataset.maValue : 'off';
+    };
+
+    const getVisibleBarsCount = () => {
+        const logicalRange = chart.timeScale().getVisibleLogicalRange();
+        if (!logicalRange) return seriesData.length;
+        return Math.max(1, Math.round(logicalRange.to - logicalRange.from));
+    };
+
+    const updateMaSeries = () => {
+        const selectedValue = getSelectedMaValue();
+
+        if (selectedValue === 'off') {
+            maSeries.setData([]);
+            return;
+        }
+
+        let period;
+
+        if (selectedValue === 'auto') {
+            period = resolveAutoMaPeriod(getVisibleBarsCount());
+        } else {
+            period = Number.parseInt(selectedValue, 10);
+        }
+
+        maSeries.setData(calculateSma(seriesData, period));
+    };
+
     if (predictData.length > 0) {
         const predictCandlestickSeries = chart.addCandlestickSeries({
             upColor: '#40E0D0',
@@ -53,6 +125,22 @@ if (chartContainer && window.LightweightCharts) {
         });
         predictCandlestickSeries.setData(predictData);
     }
+
+    maButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            maButtons.forEach((item) => item.classList.remove('is-active'));
+            button.classList.add('is-active');
+            updateMaSeries();
+        });
+    });
+
+    chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+        if (getSelectedMaValue() === 'auto') {
+            updateMaSeries();
+        }
+    });
+
+    updateMaSeries();
 
     chart.timeScale().fitContent();
 
