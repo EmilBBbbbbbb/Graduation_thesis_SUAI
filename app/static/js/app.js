@@ -3,10 +3,8 @@ const chartContainer = document.getElementById('candlestick-chart');
 if (chartContainer && window.LightweightCharts) {
     const rawData = chartContainer.dataset.series;
     const rawPredictData = chartContainer.dataset.predictSeries;
-
     const seriesData = rawData ? JSON.parse(rawData) : [];
     const predictData = rawPredictData ? JSON.parse(rawPredictData) : [];
-
 
     const chart = LightweightCharts.createChart(chartContainer, {
         layout: {
@@ -58,14 +56,122 @@ if (chartContainer && window.LightweightCharts) {
 
     chart.timeScale().fitContent();
 
-    const handleResize = () => {
+    const volumeChartContainer = document.getElementById('volume-chart');
+    if (volumeChartContainer) {
+        const volumeChart = LightweightCharts.createChart(volumeChartContainer, {
+            layout: {
+                background: { color: '#101621' },
+                textColor: '#cbd5f5',
+                fontFamily: 'Inter, sans-serif',
+            },
+            grid: {
+                vertLines: { color: 'rgba(148, 163, 184, 0.1)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
+            },
+            timeScale: {
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+            },
+            rightPriceScale: {
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+            },
+            height: volumeChartContainer.clientHeight,
+            width: volumeChartContainer.clientWidth,
+        });
+
+        const volumeSeries = volumeChart.addHistogramSeries({
+            color: '#3b82f6',
+        });
+
+        const volumeData = seriesData.map(candle => ({
+            time: candle.time,
+            value: candle.volume || 0,
+        }));
+
+        volumeSeries.setData(volumeData);
+        volumeChart.timeScale().fitContent();
+
+        window.addEventListener('resize', () => {
+            volumeChart.applyOptions({
+                width: volumeChartContainer.clientWidth,
+                height: volumeChartContainer.clientHeight,
+            });
+        });
+    }
+
+    const rsiChartContainer = document.getElementById('rsi-chart');
+    if (rsiChartContainer) {
+        const rsiChart = LightweightCharts.createChart(rsiChartContainer, {
+            layout: {
+                background: { color: '#101621' },
+                textColor: '#cbd5f5',
+                fontFamily: 'Inter, sans-serif',
+            },
+            grid: {
+                vertLines: { color: 'rgba(148, 163, 184, 0.1)' },
+                horzLines: { color: 'rgba(148, 163, 184, 0.1)' },
+            },
+            timeScale: {
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+            },
+            rightPriceScale: {
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+                scaleMargins: {
+                    top: 0.1,
+                    bottom: 0.1,
+                },
+            },
+            height: rsiChartContainer.clientHeight,
+            width: rsiChartContainer.clientWidth,
+        });
+
+        const rsiLineSeries = rsiChart.addLineSeries({
+            color: '#f59e0b',
+            lineWidth: 2,
+        });
+
+        const rsiData = seriesData
+            .filter(candle => 'rsi' in candle)
+            .map(candle => ({
+                time: candle.time,
+                value: candle.rsi,
+            }));
+
+        if (rsiData.length > 0) {
+            rsiLineSeries.setData(rsiData);
+        }
+
+        rsiChart.addLineSeries({
+            color: 'rgba(239, 68, 68, 0.3)',
+            lineWidth: 1,
+        }).setData(seriesData.map(candle => ({
+            time: candle.time,
+            value: 70,
+        })));
+
+        rsiChart.addLineSeries({
+            color: 'rgba(34, 197, 94, 0.3)',
+            lineWidth: 1,
+        }).setData(seriesData.map(candle => ({
+            time: candle.time,
+            value: 30,
+        })));
+
+        rsiChart.timeScale().fitContent();
+
+        window.addEventListener('resize', () => {
+            rsiChart.applyOptions({
+                width: rsiChartContainer.clientWidth,
+                height: rsiChartContainer.clientHeight,
+            });
+        });
+    }
+
+    window.addEventListener('resize', () => {
         chart.applyOptions({
             width: chartContainer.clientWidth,
             height: chartContainer.clientHeight,
         });
-    };
-
-    window.addEventListener('resize', handleResize);
+    });
 }
 
 const modal = document.getElementById('news-modal');
@@ -101,3 +207,4 @@ document.addEventListener('keydown', (event) => {
         closeModal();
     }
 });
+
