@@ -47,9 +47,10 @@
         </div>
         <div class="news-list">
             {% for item in news %}
-            <button
+            <div
                 class="news-card"
-                type="button"
+                role="button"
+                tabindex="0"
                 data-title="{{ item.title }}"
                 data-date="{{ item.date }}"
                 data-body="{{ item.body }}"
@@ -60,11 +61,132 @@
                 </div>
                 <p>{{ item.summary }}</p>
                 <span class="news-more">Читать полностью</span>
-            </button>
+            </div>
             {% endfor %}
+        </div>
+
+        {% if flash_message %}
+        <div class="flash flash-{{ flash_level }}">{{ flash_message }}</div>
+        {% endif %}
+
+        <div class="trade-card">
+            <div class="trade-header-row">
+                <h3>Демоторговля</h3>
+                <span class="trade-price">Текущая цена: {{ latest_price }}</span>
+            </div>
+
+            {% if current_user %}
+            <div class="account-grid">
+                <div>
+                    <div class="account-label">Пользователь</div>
+                    <div class="account-value">{{ current_user.username }}</div>
+                </div>
+                <div>
+                    <div class="account-label">Стартовый капитал</div>
+                    <div class="account-value">{{ '%.2f'|format(current_user.start_capital) }}</div>
+                </div>
+                <div>
+                    <div class="account-label">Текущий капитал</div>
+                    <div class="account-value">{{ '%.2f'|format(display_current_capital) }}</div>
+                </div>
+                <div>
+                    <div class="account-label">Доходность</div>
+                    <div class="account-value pnl {% if performance_pct >= 0 %}pnl-plus{% else %}pnl-minus{% endif %}">
+                        {{ '%+.2f'|format(performance_pct) }}%
+                    </div>
+                </div>
+            </div>
+
+            <div class="positions-row">
+                <span class="account-label">Позиции:</span>
+                {% if positions %}
+                    {% for key, qty in positions.items() %}
+                        <span class="position-pill">{{ key|upper }}: {{ qty }}</span>
+                    {% endfor %}
+                {% else %}
+                    <span class="account-muted">Нет открытых позиций</span>
+                {% endif %}
+            </div>
+
+            <form class="trade-form" method="post" action="/trade/{{ metal_key }}/execute">
+                <label class="sr-only" for="trade-side">Тип сделки</label>
+                <select id="trade-side" name="side" required>
+                    <option value="buy">Купить</option>
+                    <option value="sell">Продать</option>
+                </select>
+                <label class="sr-only" for="trade-quantity">Количество</label>
+                <input id="trade-quantity" type="number" step="0.0001" min="0.0001" name="quantity" placeholder="Количество тикеров" required />
+                <button type="submit">Выполнить</button>
+            </form>
+
+            <div class="account-actions">
+                <form method="post" action="/trade/account/set">
+                    <label class="sr-only" for="account-start-capital">Новый демо-счет</label>
+                    <input id="account-start-capital" type="number" step="0.01" min="0.01" name="start_capital" placeholder="Новый демо-счет" required />
+                    <button type="submit">Установить счет</button>
+                </form>
+                <form method="post" action="/trade/account/reset">
+                    <button type="submit" class="btn-danger">Сбросить результаты</button>
+                </form>
+            </div>
+
+            <div class="history-block">
+                <h4>История сделок</h4>
+                {% if trade_history %}
+                <div class="history-list">
+                    {% for trade in trade_history %}
+                    <div class="history-row">
+                        <span>{{ trade.created_at }}</span>
+                        <span>{{ trade.metal_key|upper }}</span>
+                        <span class="trade-side {% if trade.side == 'buy' %}trade-buy{% else %}trade-sell{% endif %}">{{ trade.side|upper }}</span>
+                        <span>{{ trade.quantity }}</span>
+                        <span>{{ trade.price }}</span>
+                        <span>{{ trade.total }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="account-muted">Сделок пока нет</div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="account-muted">Чтобы торговать, войдите через кнопку в хэдере.</p>
+            {% endif %}
         </div>
     </aside>
 </section>
+
+<div class="modal" id="auth-modal" aria-hidden="true">
+    <div class="modal-overlay" data-auth-close></div>
+    <div class="modal-card modal-card-auth" role="dialog" aria-modal="true">
+        <button class="modal-close" type="button" data-auth-close>×</button>
+        <div class="modal-content modal-auth-content">
+            <div class="auth-grid">
+                <form class="auth-form" method="post" action="/auth/register">
+                    <h4>Регистрация</h4>
+                    <label class="sr-only" for="register-username">Логин</label>
+                    <input id="register-username" type="text" name="username" placeholder="Логин" minlength="3" maxlength="32" required />
+                    <label class="sr-only" for="register-email">Email</label>
+                    <input id="register-email" type="email" name="email" placeholder="Email" required />
+                    <label class="sr-only" for="register-password">Пароль</label>
+                    <input id="register-password" type="password" name="password" placeholder="Пароль (минимум 8 символов)" minlength="8" required />
+                    <label class="sr-only" for="register-start-capital">Стартовый капитал</label>
+                    <input id="register-start-capital" type="number" step="0.01" min="0.01" name="start_capital" placeholder="Стартовый капитал" value="100000" required />
+                    <button type="submit">Зарегистрироваться</button>
+                </form>
+
+                <form class="auth-form" method="post" action="/auth/login">
+                    <h4>Вход</h4>
+                    <label class="sr-only" for="login-username">Логин</label>
+                    <input id="login-username" type="text" name="username" placeholder="Логин" required />
+                    <label class="sr-only" for="login-password">Пароль</label>
+                    <input id="login-password" type="password" name="password" placeholder="Пароль" required />
+                    <button type="submit">Войти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="modal" id="news-modal" aria-hidden="true">
     <div class="modal-overlay" data-modal-close></div>

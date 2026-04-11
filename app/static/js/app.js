@@ -263,6 +263,7 @@ if (chartContainer && window.LightweightCharts) {
 }
 
 const modal = document.getElementById('news-modal');
+const authModal = document.getElementById('auth-modal');
 const modalTitle = document.getElementById('modal-title');
 const modalDate = document.getElementById('modal-date');
 const modalBody = document.getElementById('modal-body');
@@ -282,17 +283,44 @@ const closeModal = () => {
     modal.setAttribute('aria-hidden', 'true');
 };
 
+const openAuthModal = () => {
+    if (!authModal) return;
+    authModal.classList.add('is-open');
+    authModal.setAttribute('aria-hidden', 'false');
+};
+
+const closeAuthModal = () => {
+    if (!authModal) return;
+    authModal.classList.remove('is-open');
+    authModal.setAttribute('aria-hidden', 'true');
+};
+
 document.querySelectorAll('.news-card').forEach((card) => {
     card.addEventListener('click', () => openModal(card));
+    card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openModal(card);
+        }
+    });
 });
 
 document.querySelectorAll('[data-modal-close]').forEach((element) => {
     element.addEventListener('click', closeModal);
 });
 
+document.querySelectorAll('[data-auth-open]').forEach((element) => {
+    element.addEventListener('click', openAuthModal);
+});
+
+document.querySelectorAll('[data-auth-close]').forEach((element) => {
+    element.addEventListener('click', closeAuthModal);
+});
+
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
         closeModal();
+        closeAuthModal();
     }
 });
 

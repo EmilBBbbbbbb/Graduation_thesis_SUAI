@@ -10,11 +10,21 @@
 <header class="glass-header">
     <nav class="nav-bar">
         <a href="/" class="logo">Прогноз цен</a>
-        <ul class="nav-menu">
-            <li><a href="/gold">Золото</a></li>
-            <li><a href="/silver">Серебро</a></li>
-            <li><a href="/cupp">Медь</a></li>
-        </ul>
+        <div class="nav-right">
+            <ul class="nav-menu">
+                <li><a href="/gold">Золото</a></li>
+                <li><a href="/silver">Серебро</a></li>
+                <li><a href="/cupp">Медь</a></li>
+            </ul>
+            {% if current_user %}
+            <form method="post" action="/auth/logout" class="header-auth-form">
+                <span class="header-user">{{ current_user.username }}</span>
+                <button class="header-auth-btn" type="submit">Выйти</button>
+            </form>
+            {% else %}
+            <button class="header-auth-btn" type="button" data-auth-open>Вход / Регистрация</button>
+            {% endif %}
+        </div>
     </nav>
 </header>
 

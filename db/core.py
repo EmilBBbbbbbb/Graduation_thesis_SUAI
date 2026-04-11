@@ -141,9 +141,9 @@ if __name__ == '__main__':
 
     filling_all_tables()
     #
-    # candle: CandleDict = {"date": dt.datetime(2026, 2, 5),
-    #             "open": 211.2,
-    #              "high":224.4,
-    #              "low": 208.18,
-    #              "close": 219.2}
-    # insert_data([candle],silver_cost_predict_table)
+    # candle: CandleDict = {"date": dt.datetime(2026, 4, 10),
+    #             "open": 11798.4,
+    #              "high":11805.1,
+    #              "low": 11703.1,
+    #              "close": 11745.9}
+    # insert_data([candle],gold_cost_table)

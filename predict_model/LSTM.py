@@ -112,7 +112,7 @@ def upsert_predictions(records: list[dict[str, Any]]) -> int:
 
 
 def run(horizon: int = 30) -> int:
-	bundle_path = Path("predict_model/models/gold_lstm_bundle.pkl")
+	bundle_path = Path("models/gold_lstm_bundle.pkl")
 	if not bundle_path.exists():
 		raise FileNotFoundError(f"Не найден файл модели: {bundle_path}")
 
