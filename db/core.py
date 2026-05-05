@@ -134,12 +134,12 @@ if __name__ == '__main__':
     #     silver_news_table,
     #     copper_news_table])
     #
-    # drop_all_tables([
-    #     gold_cost_predict_table,
-    #     silver_cost_predict_table,
-    #     copper_cost_predict_table])
+    drop_all_tables([
+        gold_cost_predict_table,
+        silver_cost_predict_table,
+        copper_cost_predict_table])
 
-    filling_all_tables()
+    # filling_all_tables()
     #
     # candle: CandleDict = {"date": dt.datetime(2026, 4, 10),
     #             "open": 11798.4,
