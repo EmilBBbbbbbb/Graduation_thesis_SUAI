@@ -24,17 +24,25 @@ from tensorflow.keras.models import model_from_json
 
 from db.core import table_to_df
 from db.create_db import engine
-from db.models import gold_cost_predict_table
+from db.models import (
+	gold_cost_predict_table,
+	silver_cost_predict_table,
+	copper_cost_predict_table,
+)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-BUNDLE_PATH = PROJECT_ROOT / "predict_model" / "models" / "gold_lstm_bundle.pkl"
 SVM_PATH = PROJECT_ROOT / "predict_model" / "models" / "svm_sentiment_pipeline.pkl"
-METAL_NAME = "gold"
-PREDICT_TABLE = gold_cost_predict_table
+
+# map metal key to DB predict table variable
+PREDICT_TABLES = {
+	"gold": gold_cost_predict_table,
+	"sliver": silver_cost_predict_table,
+	"copper": copper_cost_predict_table,
+}
 
 
-def load_bundle(bundle_path: Path = BUNDLE_PATH) -> dict:
+def load_bundle(bundle_path: Path) -> dict:
 	if not bundle_path.exists():
 		raise FileNotFoundError(f"LSTM bundle not found: {bundle_path}")
 
@@ -79,12 +87,15 @@ def _compute_price_features(df: pd.DataFrame) -> pd.DataFrame:
 	return df
 
 
-def load_gold_market_data(history_years: int = 2) -> pd.DataFrame:
-	"""Load gold candles and news from DB and build the model input frame."""
+def load_market_data(metal: str, history_years: int = 2) -> pd.DataFrame:
+	"""Load candles and news for `metal` from DB and build the model input frame.
 
-	df_cost = table_to_df("gold_cost")
+	metal should be one of: 'gold', 'sliver', 'copper'.
+	"""
+
+	df_cost = table_to_df(f"{metal}_cost")
 	if df_cost.empty:
-		raise ValueError("gold_cost table is empty")
+		raise ValueError(f"{metal}_cost table is empty")
 
 	df_cost = df_cost.copy()
 	df_cost["date"] = _normalize_dates(df_cost["date"])
@@ -101,7 +112,7 @@ def load_gold_market_data(history_years: int = 2) -> pd.DataFrame:
 	df_cost = _compute_price_features(df_cost)
 
 	try:
-		df_news = table_to_df("gold_news")
+		df_news = table_to_df(f"{metal}_news")
 	except Exception:
 		df_news = pd.DataFrame(columns=["date", "full_text"])
 
@@ -109,7 +120,7 @@ def load_gold_market_data(history_years: int = 2) -> pd.DataFrame:
 		df_news = df_news.copy()
 		df_news["date"] = _normalize_dates(df_news["date"])
 		if history_years is not None:
-			df_news = df_news[df_news["date"] >= df_cost["date"].min()].copy()
+			df_news = df_news[pd.to_datetime(df_news["date"]) >= df_cost["date"].min()].copy()
 
 		svm_pipeline = joblib.load(SVM_PATH)
 		df_news = df_news.dropna(subset=["full_text"]).copy()
@@ -117,9 +128,7 @@ def load_gold_market_data(history_years: int = 2) -> pd.DataFrame:
 		sentiment_map = {0: -1, 1: 0, 2: 1}
 		df_news["sentiment"] = pd.Series(sentiments, index=df_news.index).map(sentiment_map).astype(int)
 
-		daily_sentiment = (
-			df_news.groupby("date", as_index=False)["sentiment"].sum()
-		)
+		daily_sentiment = df_news.groupby("date", as_index=False)["sentiment"].sum()
 		daily_sentiment["sentiment"] = daily_sentiment["sentiment"].clip(-1, 1)
 	else:
 		daily_sentiment = pd.DataFrame({"date": df_cost["date"], "sentiment": 0})
@@ -163,7 +172,7 @@ def prepare_latest_window(df: pd.DataFrame, feature_columns: Iterable[str], time
 	return np.asarray([x_scaled[-timesteps:]], dtype=np.float32)
 
 
-def forecast_gold_prices(bundle: dict, df: pd.DataFrame) -> pd.DataFrame:
+def forecast_prices_for_metal(bundle: dict, df: pd.DataFrame) -> pd.DataFrame:
 	model = build_model(bundle)
 	x_scaler = bundle["x_scaler"]
 	y_scaler = bundle["y_scaler"]
@@ -186,33 +195,54 @@ def forecast_gold_prices(bundle: dict, df: pd.DataFrame) -> pd.DataFrame:
 	return forecast_df
 
 
-def replace_predictions_in_db(predictions: pd.DataFrame) -> None:
+def replace_predictions_in_db(predictions: pd.DataFrame, predict_table) -> None:
 	records = predictions.copy()
 	records["date"] = pd.to_datetime(records["date"]).map(lambda value: pd.Timestamp(value).to_pydatetime())
 	payload = records.to_dict(orient="records")
 	dates = [row["date"] for row in payload]
 
 	with engine.begin() as connection:
-		connection.execute(delete(PREDICT_TABLE).where(PREDICT_TABLE.c.date.in_(dates)))
-		connection.execute(insert(PREDICT_TABLE), payload)
+		connection.execute(delete(predict_table).where(predict_table.c.date.in_(dates)))
+		connection.execute(insert(predict_table), payload)
 
 
-def main() -> pd.DataFrame:
-	logger.info("Loading saved gold LSTM bundle...")
-	bundle = load_bundle()
+def main() -> None:
+	metals = ["gold", "sliver", "copper"]
+	for metal in metals:
+		bundle_path = PROJECT_ROOT / "predict_model" / "models" / f"{metal}_lstm_bundle.pkl"
+		logger.info("Loading saved LSTM bundle for {}...", metal)
+		if not bundle_path.exists():
+			logger.warning("Bundle for %s not found, skipping", metal)
+			continue
 
-	logger.info("Loading gold market data from database...")
-	market_df = load_gold_market_data(history_years=int(bundle.get("history_years", 2)))
+		with bundle_path.open("rb") as f:
+			bundle = pickle.load(f)
 
-	logger.info("Forecasting gold prices...")
-	forecast_df = forecast_gold_prices(bundle, market_df)
+		history_years = int(bundle.get("history_years", 2))
 
-	logger.info("Saving predictions to database table {}...", PREDICT_TABLE.name)
-	replace_predictions_in_db(forecast_df)
+		logger.info("Loading %s market data from database...", metal)
+		try:
+			market_df = load_market_data(metal, history_years=history_years)
+		except Exception as e:
+			logger.error("Failed to load market data for %s: %s", metal, e)
+			continue
 
-	logger.info("Predictions saved successfully.")
-	print(forecast_df.to_string(index=False))
-	return forecast_df
+		logger.info("Forecasting %s prices...", metal)
+		forecast_df = forecast_prices_for_metal(bundle, market_df)
+
+		predict_table = PREDICT_TABLES.get(metal)
+		if predict_table is None:
+			logger.warning("No predict table configured for %s, skipping DB write", metal)
+			print(forecast_df.to_string(index=False))
+			continue
+
+		logger.info("Saving predictions to database table %s...", predict_table.name)
+		replace_predictions_in_db(forecast_df, predict_table)
+		logger.info("Predictions for %s saved successfully.", metal)
+		print(f"--- {metal.upper()} predictions ---")
+		print(forecast_df.to_string(index=False))
+
+	logger.info("All done.")
 
 
 if __name__ == "__main__":
