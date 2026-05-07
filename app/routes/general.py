@@ -5,8 +5,12 @@ import re
 from datetime import datetime
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.concurrency import run_in_threadpool
+
+# Import backend update/prediction logic
+from db.update_information import update_all_data, run_price_predictions
 from sqlalchemy import delete, desc, insert, select, update
 
 from db.core import engine
@@ -579,6 +583,26 @@ async def execute_trade(request: Request, metal_key: str):
 
     _set_flash(request, "Сделка выполнена.", "success")
     return RedirectResponse(f"/{metal_key}", status_code=303)
+
+@router.post("/api/update-data")
+async def api_update_data(request: Request):
+    """Trigger full data update (prices + news).
+
+    This endpoint runs the update logic in a threadpool to avoid blocking
+    the event loop. Returns summary JSON with inserted counts / errors.
+    """
+    result = await run_in_threadpool(update_all_data)
+    return JSONResponse(result)
+
+
+@router.post("/api/run-predictions")
+async def api_run_predictions(request: Request):
+    """Trigger price prediction routine.
+
+    Runs the prediction function in a threadpool and returns status.
+    """
+    result = await run_in_threadpool(run_price_predictions)
+    return JSONResponse(result)
 
 
 @router.get('/', response_class=HTMLResponse)

@@ -1,102 +1,81 @@
-import datetime as dt
-import time
+"""Utilities to update DB content and run predictions.
 
-from scheduler import Scheduler
+This module centralizes the update logic so it can be called from the
+backend endpoints. The DAG will call the backend endpoints instead of
+containing scraping/prediction logic itself.
+"""
 
-import sys
-from loguru import logger
+from typing import Dict, Any
+import logging
 
-from db.core import insert_data
-from db.models import gold_cost_table, silver_cost_table, copper_cost_table, gold_news_table, silver_news_table, \
-    copper_news_table
-from parser.get_cost import get_cost_hours
-
+from db.core import insert_data, table_to_df
+from db.models import (
+    gold_cost_table,
+    silver_cost_table,
+    copper_cost_table,
+    gold_news_table,
+    silver_news_table,
+    copper_news_table,
+)
+from parser.get_cost import get_cost_daily
 from scraper.scrape import Scraper
+from predict_model.LSTM import main as run_predictions_main
 
-logger.remove()
-logger.add(sys.stderr, level="DEBUG")
-
-schedule = Scheduler()
-
-gold_scraper = Scraper(
-        url='https://www.finversia.ru/dragmetally',
-        keywords=['золот', 'gold'],
-        output_file=False,
-        years=5,
-        max_pages=1
-    )
-silver_scraper = Scraper(
-    url='https://www.finversia.ru/dragmetally',
-    keywords=['серебр', 'silver'],
-    output_file=False,
-    years=5,
-    max_pages=1
-)
-copper_scraper = Scraper(
-    url='https://www.finversia.ru/syrevye-rynki',
-    keywords=['мед', 'copper'],
-    output_file=False,
-    years=5,
-    max_pages=1
-)
-
-def update_information() -> None:
-    '''Функция для обновления информации в базе данных'''
-    logger.info('Обновление данных...')
-    # Обновление таблицы стоимости золота
-    gold_cost = get_cost_hours('BBG000VJ5YR4')
-    if gold_cost:
-        insert_data(gold_cost, gold_cost_table)
-    else:
-        logger.info('Нет информации о цене золоте за час')
-
-    # Обновление таблицы стоимости серебра
-    silver_cost = get_cost_hours('BBG000VHQTD1')
-    if silver_cost:
-        insert_data(silver_cost, silver_cost_table)
-    else:
-        logger.info('Нет информации о цене серебре за час')
-
-    # Обновление таблицы стоимости меди
-    copper_cost = get_cost_hours('FUTCOPPE0326')
-    if copper_cost:
-        insert_data(copper_cost, copper_cost_table)
-    else:
-        logger.info('Нет информации о цене меди за час')
+logger = logging.getLogger(__name__)
 
 
-    # Обновление таблицы новостей о золоте
-    news_gold=gold_scraper.get_recent_news()
-    if news_gold:
-        insert_data(news_gold, gold_news_table)
-        logger.info('Обновлена таблица новостей о золоте.')
-    else:
-        logger.info('Нет новых новостей о золоте')
+def _update_price_table(figi: str, table) -> Dict[str, Any]:
+    try:
+        candles = get_cost_daily(figi)
+        if candles:
+            insert_data(candles, table)
+            return {"inserted": len(candles)}
+        return {"inserted": 0, "note": "no new candles"}
+    except Exception as e:
+        logger.exception("Failed to update price table %s", getattr(table, 'name', table))
+        return {"error": str(e)}
 
 
-    # Обновление таблицы новостей о серебре
-    news_silver=silver_scraper.get_recent_news()
-    if news_silver:
-        insert_data(news_silver, silver_news_table)
-        logger.info('Обновлена таблица новостей о серебре.')
-    else:
-        logger.info('Нет новых новостей о серебре')
+def _update_news(url: str, keywords: list[str], table) -> Dict[str, Any]:
+    try:
+        scraper = Scraper(url=url, keywords=keywords, output_file=False, years=1, max_pages=1)
+        news = scraper.get_recent_news()
+        if news:
+            insert_data(news, table)
+            return {"inserted": len(news)}
+        return {"inserted": 0, "note": "no new news"}
+    except Exception as e:
+        logger.exception("Failed to update news table %s", getattr(table, 'name', table))
+        return {"error": str(e)}
 
 
-    # Обновление таблицы новостей о меде
-    news_copper=copper_scraper.get_recent_news()
-    if news_copper:
-        insert_data(news_copper, copper_news_table)
-        logger.info('Обновлена таблица новостей о меди.')
-    else:
-        logger.info('Нет новых новостей о меди')
+def update_all_data() -> Dict[str, Any]:
+    """Run full update: prices and news for all metals.
+
+    Returns a summary dict with inserted counts and possible errors.
+    """
+    summary: dict[str, Any] = {}
+
+    summary['gold_prices'] = _update_price_table('BBG000VJ5YR4', gold_cost_table)
+    summary['silver_prices'] = _update_price_table('BBG000VHQTD1', silver_cost_table)
+    summary['copper_prices'] = _update_price_table('FUTCOPPE0326', copper_cost_table)
+
+    summary['gold_news'] = _update_news('https://www.finversia.ru/dragmetally', ['золот', 'gold'], gold_news_table)
+    summary['silver_news'] = _update_news('https://www.finversia.ru/dragmetally', ['серебр', 'silver'], silver_news_table)
+    summary['copper_news'] = _update_news('https://www.finversia.ru/syrevye-rynki', ['мед', 'copper'], copper_news_table)
+
+    return summary
 
 
-schedule.cyclic(dt.timedelta(hours=1), update_information)
+def run_price_predictions() -> Dict[str, Any]:
+    """Run prediction routine (invokes predict_model.LSTM.main).
 
-if __name__ == '__main__':
-    update_information()
-    #print(silver_scraper.get_recent_news())
-    # while True:
-    #     schedule.exec_jobs()
-    #     time.sleep(1)
+    Returns status dict. The prediction code writes predicted rows into DB.
+    """
+    try:
+        run_predictions_main()
+        return {"status": "ok"}
+    except Exception as e:
+        logger.exception("Prediction run failed")
+        return {"status": "error", "error": str(e)}
+

@@ -18,4 +18,4 @@ app.include_router(general_router)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
-# Для запуска: uvicorn app.main:app --reload
+# Для запуска: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

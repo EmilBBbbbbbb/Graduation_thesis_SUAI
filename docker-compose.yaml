@@ -66,6 +66,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./:/opt/airflow/project
     command: webserver
     networks:
       - airflow-network
@@ -82,6 +83,7 @@ services:
       - ./airflow/dags:/opt/airflow/dags
       - ./airflow/logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./:/opt/airflow/project
     command: scheduler
     networks:
       - airflow-network

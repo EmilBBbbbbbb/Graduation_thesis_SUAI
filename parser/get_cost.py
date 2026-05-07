@@ -74,10 +74,10 @@ def get_cost(figi: str) -> List[CandleDict]:
 
     return list_to_dict(_get_candles(figi, timedelta(days=365 * 7)))
 
-def get_cost_hours(figi: str) -> List[CandleDict]:
+def get_cost_daily(figi: str, days: int = 1) -> List[CandleDict]:
     '''Функция для получения цены по figi'''
 
-    return list_to_dict(_get_candles(figi, timedelta(hours=1)))
+    return list_to_dict(_get_candles(figi, timedelta(days=days)))
 
 def get_volume(figi: str) -> List[VolumeDict]:
     '''Функция для получения объёма торгов по figi'''
