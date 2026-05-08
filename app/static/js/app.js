@@ -113,6 +113,21 @@ if (chartContainer && window.LightweightCharts) {
     };
 
     if (predictData.length > 0) {
+        // Helper to parse time values and safely sort by prediction date
+        const parseTimeForSort = (t) => {
+            if (typeof t === 'number') return t;
+            const parsed = Date.parse(String(t));
+            return Number.isNaN(parsed) ? 0 : parsed;
+        };
+
+        const getLastNPredictions = (data, n = 5) => {
+            if (!Array.isArray(data) || data.length === 0) return [];
+            const sorted = data.slice().sort((a, b) => parseTimeForSort(a.time) - parseTimeForSort(b.time));
+            return sorted.slice(Math.max(0, sorted.length - n));
+        };
+
+        const filteredPredictData = getLastNPredictions(predictData, 5);
+
         const predictCandlestickSeries = chart.addCandlestickSeries({
             upColor: '#40E0D0',
             downColor: '#a963ea',
@@ -123,7 +138,7 @@ if (chartContainer && window.LightweightCharts) {
             priceLineVisible: true,
             lastValueVisible: true,
         });
-        predictCandlestickSeries.setData(predictData);
+        predictCandlestickSeries.setData(filteredPredictData);
     }
 
     maButtons.forEach((button) => {

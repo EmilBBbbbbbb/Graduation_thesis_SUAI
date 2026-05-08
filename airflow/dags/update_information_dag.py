@@ -21,7 +21,7 @@ default_args = {
     'owner': 'airflow',
     'start_date': days_ago(1),
     'retries': 1,
-    'retry_delay': timedelta(minutes=5),
+    'retry_delay': timedelta(days=1),
 }
 
 # Run daily at 00:00 UTC
